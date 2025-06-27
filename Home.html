@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>ChatApp - Home</title>
+  <style>
+    :root {
+      --accent: #00C897;
+      --bg-dark: #111;
+      --text-light: #fff;
+    }
+    * { box-sizing: border-box; margin:0; padding:0; }
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: var(--bg-dark);
+      color: var(--text-light);
+    }
+    header {
+      background: var(--accent);
+      padding: 12px 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .left, .right { display:flex; align-items:center; gap:10px; }
+    header img.profile {
+      width:36px; height:36px;
+      border-radius:50%; object-fit:cover;
+      cursor:pointer;
+    }
+    h1 {
+      font-size: 20px;
+      color: #111;
+      text-transform: uppercase;
+    }
+    .right button {
+      background:transparent; border:none;
+      color:#111; font-size:14px;
+      cursor:pointer; padding:6px;
+      border-radius:6px;
+    }
+    .right button:hover {
+      background: rgba(0,0,0,0.1);
+    }
+    #searchDrawer {
+      position:fixed; top:0; right:-100vw;
+      width:100vw; height:100vh;
+      background:#1a1a1a; padding:20px;
+      overflow-y:auto; transition:right .4s;
+      z-index:1000;
+    }
+    #searchDrawer.open { right:0; }
+    #searchInput {
+      width:100%; padding:10px;
+      font-size:14px;
+      border:2px solid var(--accent);
+      border-radius:10px;
+      background:#111; color:var(--accent);
+      margin-bottom:16px;
+    }
+    .user-card {
+      display:flex; gap:10px;
+      background:#222;
+      border:2px solid var(--accent);
+      border-radius:12px;
+      padding:10px;
+      cursor:pointer;
+      transition: transform .15s;
+    }
+    .user-card:hover { transform:scale(1.02); }
+    .user-card img {
+      width:40px; height:40px;
+      border-radius:50%; object-fit:cover;
+    }
+    .user-info .username { font-size:14px; color:var(--accent); }
+    .user-info .name { font-size:12px; color:#ccc; }
+    .close-btn {
+      position:absolute; top:12px; right:16px;
+      font-size:28px; color:var(--accent);
+      cursor:pointer;
+    }
+    #profileModal {
+      position:fixed; top:0; left:0;
+      width:100vw; height:100vh;
+      background:rgba(0,0,0,0.7);
+      display:none; justify-content:center;
+      align-items:center; z-index:2000;
+    }
+    #profileBox {
+      background:#222; padding:30px;
+      border-radius:16px; border:2px solid var(--accent);
+      width:90%; max-width:400px;
+      display:flex; flex-direction:column;
+      align-items:center; gap:16px;
+      position:relative;
+    }
+    #modalPic {
+      width:100px; height:100px;
+      background:url('Assets/Images/profile.png') center/cover no-repeat;
+      border-radius:50%; cursor:pointer;
+      border:2px solid var(--accent);
+    }
+    #modalPicInput { display:none; }
+    #profileBox input, #profileBox textarea {
+      width:100%; padding:12px;
+      font-size:16px;
+      background:#111; color:var(--accent);
+      border:2px solid var(--accent);
+      border-radius:10px;
+    }
+    #profileBox textarea {
+      resize:none; min-height:60px;
+    }
+    #profileBox button {
+      padding:12px; font-size:16px;
+      background:var(--accent); color:#111;
+      border:none; border-radius:10px;
+      cursor:pointer;
+    }
+    #usernameCheck {
+      font-size:14px; color:#ccc;
+      height:20px; align-self:start;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="left">
+      <img id="headerProfilePic" class="profile" src="Assets/Images/profile.png" alt="Profile" onclick="openProfileModal()" />
+      <h1>ChatApp</h1>
+    </div>
+    <div class="right">
+      <img src="Assets/Images/search.png" alt="Search" style="width:24px; height:24px; cursor:pointer" onclick="openSearch()" />
+      <button onclick="logout()">Logout</button>
+    </div>
+  </header>
+
+  <div id="searchDrawer">
+    <span class="close-btn" onclick="closeSearch()">×</span>
+    <input id="searchInput" autocomplete="off" placeholder="Search users..." />
+    <div id="resultsContainer"></div>
+  </div>
+
+  <div id="profileModal">
+    <div id="profileBox">
+      <span class="close-btn" onclick="closeProfileModal()">×</span>
+      <div id="modalPic" onclick="document.getElementById('modalPicInput').click()"></div>
+      <input type="file" id="modalPicInput" accept="image/*" />
+      <input id="usernameInput" placeholder="Username" />
+      <div id="usernameCheck"></div>
+      <input id="nameInput" placeholder="Full Name" />
+      <textarea id="aboutInput" placeholder="About (optional)"></textarea>
+      <button onclick="saveProfile()">Save</button>
+    </div>
+  </div>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-app.js";
+    import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-auth.js";
+    import { getDatabase, ref, get, set, child } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-database.js";
+
+    const fbConfig = {
+      apiKey: "AIzaSyBfQu55Ljy9FPTVtxDmoqBbq7-OlGTGOLk",
+      authDomain: "chatweb--test.firebaseapp.com",
+      databaseURL: "https://chatweb--test-default-rtdb.firebaseio.com",
+      projectId: "chatweb--test",
+      storageBucket: "chatweb--test.appspot.com",
+      messagingSenderId: "640811624137",
+      appId: "1:640811624137:web:ded815a2813ac0ab5fdb8"
+    };
+    initializeApp(fbConfig);
+
+    const auth = getAuth();
+    const db = getDatabase();
+    let currentUID = null, currentUsername = null, picFile = null, usersData = {};
+
+    const headerPic = document.getElementById('headerProfilePic');
+    const modalPic = document.getElementById('modalPic');
+
+    onAuthStateChanged(auth, async user => {
+      if (!user) return window.location = "Log.html";
+      currentUID = user.uid;
+      const snap = await get(ref(db, `users/${currentUID}`));
+      const data = snap.val() || {};
+      currentUsername = data.username || "";
+      headerPic.src = data.profilePic || "Assets/Images/profile.png";
+      modalPic.style.backgroundImage = `url(${data.profilePic || "Assets/Images/profile.png"})`;
+      document.getElementById('usernameInput').value = data.username || "";
+      document.getElementById('nameInput').value = data.name || "";
+      document.getElementById('aboutInput').value = data.about || "";
+    });
+
+    window.logout = async () => { await signOut(auth); window.location = "Log.html"; };
+
+    window.openSearch = async () => {
+      document.getElementById('searchDrawer').classList.add('open');
+      document.getElementById('searchInput').value = "";
+      document.getElementById('resultsContainer').innerHTML = "";
+      document.getElementById('searchInput').focus();
+      const snap = await get(ref(db, 'users-public'));
+      usersData = snap.exists() ? snap.val() : {};
+    };
+
+    window.closeSearch = () => {
+      document.getElementById('searchDrawer').classList.remove('open');
+    };
+
+    const searchInput = document.getElementById('searchInput');
+    searchInput.addEventListener('input', () => {
+      const q = searchInput.value.trim().toLowerCase();
+      const results = document.getElementById('resultsContainer');
+      results.innerHTML = "";
+      if (!q) return;
+
+      for (const [uname, data] of Object.entries(usersData)) {
+        const name = (data.name || "").toLowerCase();
+        if (
+          uname.toLowerCase().includes(q) ||
+          name.includes(q)
+        ) {
+          const card = document.createElement('div');
+          card.className = 'user-card';
+          const pic = data.profilePic || "Assets/Images/profile.png";
+          card.innerHTML = `
+            <img src="${pic}" alt="Profile" />
+            <div class="user-info">
+              <div class="username">${uname}</div>
+              <div class="name">${data.name || ""}</div>
+            </div>`;
+          card.onclick = () => {
+            const chatNode = [currentUsername, uname].sort().join("_");
+            window.location = `Chat.html?node=${chatNode}`;
+          };
+          results.appendChild(card);
+        }
+      }
+    });
+
+    document.getElementById('modalPicInput').addEventListener('change', function() {
+      const file = this.files[0];
+      if (file) {
+        picFile = file;
+        modalPic.style.backgroundImage = `url(${URL.createObjectURL(file)})`;
+      }
+    });
+
+    document.getElementById('usernameInput').addEventListener('input', async function() {
+      const u = this.value.trim();
+      const msg = document.getElementById('usernameCheck');
+      msg.textContent = "";
+      if (!u) return;
+      const snap = await get(child(ref(db), `users-public/${u}`));
+      msg.textContent = snap.exists() ? "❌ Username taken" : "✅ Username available";
+      msg.style.color = snap.exists() ? "red" : "lightgreen";
+    });
+
+    window.saveProfile = async function() {
+      const uname = document.getElementById('usernameInput').value.trim();
+      const name = document.getElementById('nameInput').value.trim();
+      const about = document.getElementById('aboutInput').value.trim();
+      const check = document.getElementById('usernameCheck').textContent;
+      if (!uname || !name) return alert("Username & Name required");
+      if (check.includes('❌')) return alert("Username taken");
+
+      let picUrl = null;
+      if (picFile) {
+        const img = new Image();
+        img.src = URL.createObjectURL(picFile);
+        await new Promise(r => img.onload = r);
+        const canvas = document.createElement('canvas');
+        canvas.width = canvas.height = 100;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, 100, 100);
+        const blob = await new Promise(r => canvas.toBlob(r, 'image/jpeg'));
+        const form = new FormData();
+        form.append('image', blob, 'profile.jpg');
+        const res = await fetch(`https://api.imgbb.com/1/upload?key=7856fa0bbad58470b1fdb36d67e5fdb8`, { method: 'POST', body: form });
+        const json = await res.json();
+        if (!json.success || !json.data.url) return alert('Upload failed');
+        picUrl = json.data.url;
+      }
+
+      await set(ref(db, `users/${currentUID}`), {
+        username: uname, name, about, profilePic: picUrl || headerPic.src
+      });
+      await set(ref(db, `users-public/${uname}`), {
+        name, profilePic: picUrl || headerPic.src
+      });
+
+      headerPic.src = picUrl || headerPic.src;
+      closeProfileModal();
+      alert("Profile updated!");
+    };
+
+    window.openProfileModal = () => {
+      document.getElementById("profileModal").style.display = "flex";
+    };
+    window.closeProfileModal = () => {
+      document.getElementById("profileModal").style.display = "none";
+    };
+  </script>
+</body>
+</html>

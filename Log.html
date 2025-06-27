@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Login / Signup</title>
+  <style>
+    :root {
+      --accent: #00C897;
+      --bg-dark: #111;
+      --bg-medium: #1e1e1e;
+      --input-bg: #222;
+      --text-light: #fff;
+      --border-thick: 3px;
+    }
+
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+    body {
+      margin: 0;
+      font-family: 'Segoe UI', sans-serif;
+      background: var(--bg-dark);
+      color: var(--text-light);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      padding: 20px;
+    }
+
+    h1 {
+      color: var(--accent);
+      font-size: 36px;
+      text-transform: uppercase;
+      margin-bottom: 20px;
+    }
+
+    .auth-container {
+      background: var(--bg-medium);
+      border: var(--border-thick) solid var(--accent);
+      border-radius: 24px;
+      width: 380px;
+      padding: 36px 30px;
+    }
+
+    .tab-buttons {
+      display: flex;
+      background: #151515;
+      border-radius: 20px;
+      overflow: hidden;
+      position: relative;
+      margin-bottom: 30px;
+    }
+
+    .tab-buttons button {
+      flex: 1;
+      padding: 14px;
+      background: transparent;
+      border: none;
+      font-size: 17px;
+      font-weight: bold;
+      color: var(--text-light);
+      cursor: pointer;
+      position: relative;
+      z-index: 1;
+    }
+
+    .tab-buttons button.active {
+      color: var(--accent);
+    }
+
+    .highlight-bar {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      width: 50%;
+      height: 100%;
+      background: rgba(0,200,151,0.08);
+      transition: left 0.3s ease;
+      border-radius: 20px;
+      z-index: 0;
+    }
+
+    .form-section { display: none; flex-direction: column; }
+    .form-section.active { display: flex; }
+
+    input {
+      background: var(--input-bg);
+      color: var(--accent);
+      border: var(--border-thick) solid var(--accent);
+      border-radius: 18px;
+      padding: 14px;
+      margin-bottom: 20px;
+    }
+
+    input::placeholder {
+      color: var(--accent);
+      opacity: 0.6;
+    }
+
+    .submit-btn {
+      background: var(--accent);
+      color: #111;
+      font-weight: bold;
+      border: none;
+      border-radius: 18px;
+      padding: 14px;
+      font-size: 17px;
+      cursor: pointer;
+    }
+
+    .error {
+      color: #ff4d4d;
+      font-size: 14px;
+      margin-bottom: 12px;
+    }
+
+    /* Modal */
+    #profileModal {
+      display: none;
+      position: fixed;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      background: rgba(0,0,0,0.85);
+      align-items: center; justify-content: center;
+      z-index: 999;
+    }
+
+    .modal-box {
+      background: var(--bg-medium);
+      padding: 30px;
+      border-radius: 20px;
+      border: 3px solid var(--accent);
+      width: 90%; max-width: 400px;
+      text-align: center;
+    }
+
+    .modal-box input {
+      width: 100%;
+      padding: 12px;
+      margin: 8px 0;
+      border-radius: 12px;
+      border: 2px solid var(--accent);
+      background: #111;
+      color: var(--accent);
+    }
+
+    .modal-box button {
+      background: var(--accent);
+      color: #111;
+      padding: 12px;
+      border-radius: 12px;
+      border: none;
+      margin-top: 10px;
+      cursor: pointer;
+      font-weight: bold;
+    }
+
+    .status-msg {
+      font-size: 13px;
+      min-height: 18px;
+      text-align: left;
+      color: #ccc;
+      margin: -12px 0 12px;
+      padding-left: 5px;
+    }
+
+    .modal-box input:disabled {
+      opacity: 0.6;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>CHATAPP</h1>
+
+  <div class="auth-container">
+    <div class="tab-buttons">
+      <div class="highlight-bar" id="highlightBar"></div>
+      <button id="signInTab" class="active" onclick="showTab('signIn')">Sign In</button>
+      <button id="signUpTab" onclick="showTab('signUp')">Sign Up</button>
+    </div>
+
+    <div id="signInForm" class="form-section active">
+      <input type="email" id="signInEmail" placeholder="Email" />
+      <input type="password" id="signInPassword" placeholder="Password" />
+      <div class="error" id="signInError"></div>
+      <button class="submit-btn" onclick="signIn()">Sign In</button>
+    </div>
+
+    <div id="signUpForm" class="form-section">
+      <input type="email" id="signUpEmail" placeholder="Email" />
+      <input type="password" id="signUpPassword" placeholder="Password" />
+      <div class="error" id="signUpError"></div>
+      <button class="submit-btn" onclick="signUp()">Sign Up</button>
+    </div>
+  </div>
+
+  <!-- Profile Completion Modal -->
+  <div id="profileModal">
+    <div class="modal-box">
+      <h2 style="color:var(--accent);">Complete Profile</h2>
+
+      <label style="text-align:left;width:100%;">Username</label>
+      <input id="modalUsername" placeholder="Enter a unique username" />
+      <div id="usernameStatus" class="status-msg"></div>
+
+      <label style="text-align:left;width:100%;">Full Name</label>
+      <input id="modalName" placeholder="First and Last Name" />
+
+      <label style="text-align:left;width:100%;">About (optional)</label>
+      <input id="modalAbout" placeholder="Something about you..." />
+
+      <button id="completeBtn" onclick="submitProfile()">Done</button>
+    </div>
+  </div>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-app.js";
+    import {
+      getAuth,
+      createUserWithEmailAndPassword,
+      signInWithEmailAndPassword,
+      onAuthStateChanged
+    } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-auth.js";
+    import {
+      getDatabase,
+      ref,
+      set,
+      get
+    } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-database.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyBfQu55Ljy9FPTVtxDmoqBbq7-OlGTGOLk",
+      authDomain: "chatweb--test.firebaseapp.com",
+      databaseURL: "https://chatweb--test-default-rtdb.firebaseio.com",
+      projectId: "chatweb--test",
+      storageBucket: "chatweb--test.appspot.com",
+      messagingSenderId: "640811624137",
+      appId: "1:640811624137:web:ded815a2813ac0ab5a4f18"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth();
+    const db = getDatabase();
+    let currentUID = null;
+
+    function showTab(tab) {
+      document.getElementById('signInTab').classList.toggle('active', tab === 'signIn');
+      document.getElementById('signUpTab').classList.toggle('active', tab === 'signUp');
+      document.getElementById('signInForm').classList.toggle('active', tab === 'signIn');
+      document.getElementById('signUpForm').classList.toggle('active', tab === 'signUp');
+      document.getElementById('highlightBar').style.left = tab === 'signIn' ? '0%' : '50%';
+    }
+
+    window.showTab = showTab;
+
+    onAuthStateChanged(auth, (user) => {
+      if (user && localStorage.getItem("profileCompleted") === "true") {
+        window.location.href = "Home.html";
+      }
+    });
+
+    async function signUp() {
+      const email = document.getElementById('signUpEmail').value;
+      const pass = document.getElementById('signUpPassword').value;
+      const err = document.getElementById('signUpError');
+      err.textContent = '';
+      try {
+        const res = await createUserWithEmailAndPassword(auth, email, pass);
+        currentUID = res.user.uid;
+        document.getElementById("profileModal").style.display = "flex";
+      } catch (e) {
+        err.textContent = e.message;
+      }
+    }
+
+    async function signIn() {
+      const email = document.getElementById('signInEmail').value;
+      const pass = document.getElementById('signInPassword').value;
+      const err = document.getElementById('signInError');
+      err.textContent = '';
+      try {
+        await signInWithEmailAndPassword(auth, email, pass);
+        window.location.href = "Home.html";
+      } catch (e) {
+        err.textContent = e.message;
+      }
+    }
+
+    window.signUp = signUp;
+    window.signIn = signIn;
+
+    const usernameInput = document.getElementById("modalUsername");
+    const usernameStatus = document.getElementById("usernameStatus");
+    const completeBtn = document.getElementById("completeBtn");
+    let debounce;
+
+    usernameInput.addEventListener("input", () => {
+      usernameStatus.textContent = '';
+      completeBtn.disabled = true;
+      clearTimeout(debounce);
+      const val = usernameInput.value.trim().toLowerCase();
+
+      if (!val || val.length < 3 || /[^a-z0-9._]/i.test(val)) {
+        usernameStatus.textContent = 'Username must be at least 3 characters and alphanumeric';
+        usernameStatus.style.color = '#ff4d4d';
+        return;
+      }
+
+      debounce = setTimeout(async () => {
+        try {
+          const snap = await get(ref(db, `users-public/${val}`));
+          if (snap.exists()) {
+            usernameStatus.textContent = 'Username already taken';
+            usernameStatus.style.color = '#ff4d4d';
+            completeBtn.disabled = true;
+          } else {
+            usernameStatus.textContent = 'Username available';
+            usernameStatus.style.color = '#00f5c4';
+            completeBtn.disabled = false;
+          }
+        } catch (e) {
+          usernameStatus.textContent = 'Error checking username';
+          usernameStatus.style.color = '#ff4d4d';
+        }
+      }, 500);
+    });
+
+    async function submitProfile() {
+      const username = usernameInput.value.trim().toLowerCase();
+      const name = document.getElementById("modalName").value.trim();
+      const about = document.getElementById("modalAbout").value.trim();
+
+      if (!username || !name) {
+        return alert("Username & Name required");
+      }
+
+      if (usernameStatus.textContent === 'Username already taken') {
+        return alert("Choose another username");
+      }
+
+      await set(ref(db, `users/${currentUID}`), { username, name, about });
+      await set(ref(db, `users-public/${username}`), { name });
+      localStorage.setItem("profileCompleted", "true");
+      window.location.href = "Home.html";
+    }
+
+    window.submitProfile = submitProfile;
+  </script>
+</body>
+</html>

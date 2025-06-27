@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Chat</title>
+  <style>
+    :root {
+      --accent: #00C897;
+      --bg-dark: #111;
+      --text-light: #fff;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: var(--bg-dark);
+      color: var(--text-light);
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+    }
+    header {
+      background: var(--accent);
+      padding: 16px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    header .back-btn {
+      font-size: 24px;
+      color: #111;
+      background: none;
+      border: none;
+      cursor: pointer;
+    }
+    header img {
+      width: 42px;
+      height: 42px;
+      border-radius: 50%;
+      object-fit: cover;
+    }
+    header .username {
+      font-size: 18px;
+      font-weight: bold;
+      color: #111;
+    }
+    #messages {
+      flex: 1;
+      padding: 12px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .message {
+      max-width: 70%;
+      padding: 10px 14px;
+      border-radius: 18px;
+      word-wrap: break-word;
+    }
+    .sent {
+      align-self: flex-end;
+      background: var(--accent);
+      color: #111;
+      border-bottom-right-radius: 0;
+    }
+    .received {
+      align-self: flex-start;
+      background: #eee;
+      color: #111;
+      border-bottom-left-radius: 0;
+    }
+    footer {
+      display: flex;
+      padding: 10px;
+      background: #1a1a1a;
+      border-top: 1px solid #333;
+    }
+    #msgInput {
+      flex: 1;
+      padding: 10px;
+      font-size: 14px;
+      border: 2px solid var(--accent);
+      border-radius: 12px;
+      background: #111;
+      color: var(--accent);
+      outline: none;
+    }
+    #sendBtn {
+      margin-left: 10px;
+      background: var(--accent);
+      color: #111;
+      padding: 10px 14px;
+      border: none;
+      border-radius: 12px;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <button class="back-btn" onclick="location.href='Home.html'">←</button>
+    <img id="chatPic" src="Assets/Images/profile.png" alt="Profile" />
+    <div class="username" id="chatUsername">Loading...</div>
+  </header>
+
+  <div id="messages"></div>
+
+  <footer>
+    <input type="text" id="msgInput" placeholder="Type a message..." />
+    <button id="sendBtn">Send</button>
+  </footer>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-app.js";
+    import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-auth.js";
+    import {
+      getDatabase,
+      ref,
+      push,
+      onChildAdded,
+      set,
+      get,
+      update,
+      child
+    } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-database.js";
+
+    const fbConfig = {
+      apiKey: "AIzaSyBfQu55Ljy9FPTVtxDmoqBbq7-OlGTGOLk",
+      authDomain: "chatweb--test.firebaseapp.com",
+      databaseURL: "https://chatweb--test-default-rtdb.firebaseio.com",
+      projectId: "chatweb--test",
+      storageBucket: "chatweb--test.appspot.com",
+      messagingSenderId: "640811624137",
+      appId: "1:640811624137:web:ded815a2813ac0ab5fdb8"
+    };
+    initializeApp(fbConfig);
+
+    const auth = getAuth();
+    const db = getDatabase();
+
+    const chatNode = new URLSearchParams(location.search).get("node");
+    const msgInput = document.getElementById("msgInput");
+    const messagesBox = document.getElementById("messages");
+    const sendBtn = document.getElementById("sendBtn");
+    const chatPic = document.getElementById("chatPic");
+    const chatUsernameEl = document.getElementById("chatUsername");
+
+    let currentUser = null;
+    let currentUsername = "";
+    let otherUsername = "";
+
+    const encrypt = (msg) => btoa(unescape(encodeURIComponent(msg)));
+    const decrypt = (msg) => {
+      try {
+        return decodeURIComponent(escape(atob(msg)));
+      } catch {
+        return "[Invalid message]";
+      }
+    };
+
+    onAuthStateChanged(auth, async user => {
+      if (!user) return location.href = "Log.html";
+      currentUser = user;
+
+      const userSnap = await get(ref(db, `users/${user.uid}`));
+      const userData = userSnap.val();
+      currentUsername = userData.username;
+
+      // Validate chatNode
+      if (!chatNode || !chatNode.includes("_")) {
+        alert("Invalid chat node.");
+        return location.href = "Home.html";
+      }
+
+      const parts = chatNode.split("_");
+      otherUsername = parts[0] === currentUsername ? parts[1] : parts[0];
+
+      // Fetch the other user's info
+      const otherSnap = await get(ref(db, `users-public/${otherUsername}`));
+      const otherData = otherSnap.val();
+      chatUsernameEl.textContent = otherUsername;
+      if (otherData && otherData.profilePic) {
+        chatPic.src = otherData.profilePic;
+      }
+
+      // Create node if not exists
+      const nodeRef = ref(db, `chats/${chatNode}`);
+      const nodeSnap = await get(nodeRef);
+      if (!nodeSnap.exists()) {
+        await set(nodeRef, {
+          [`read_${currentUsername}`]: true,
+          [`read_${otherUsername}`]: false
+        });
+      } else {
+        await update(nodeRef, {
+          [`read_${currentUsername}`]: true
+        });
+      }
+
+      // Listen for new messages
+      onChildAdded(nodeRef, snap => {
+        const data = snap.val();
+        if (!data.message) return;
+
+        const isMine = data.sendBy === currentUsername;
+        const bubble = document.createElement("div");
+        bubble.className = `message ${isMine ? "sent" : "received"}`;
+        bubble.textContent = decrypt(data.message);
+        messagesBox.appendChild(bubble);
+        messagesBox.scrollTop = messagesBox.scrollHeight;
+      });
+    });
+
+    sendBtn.onclick = async () => {
+      const msg = msgInput.value.trim();
+      if (!msg) return;
+
+      const encMsg = encrypt(msg);
+      const timestamp = Date.now();
+
+      const newMsgRef = push(ref(db, `chats/${chatNode}`));
+      const payload = {
+        message: encMsg,
+        sendBy: currentUsername,
+        time: timestamp,
+        [`read_${currentUsername}`]: true,
+        [`read_${otherUsername}`]: false
+      };
+
+      await set(newMsgRef, payload);
+      msgInput.value = "";
+    };
+  </script>
+</body>
+</html>

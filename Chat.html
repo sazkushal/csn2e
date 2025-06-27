@@ -45,13 +45,15 @@
       color: #111;
     }
     #messages {
-      flex: 1;
-      padding: 12px;
-      overflow-y: auto;
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-    }
+flex: 1;
+padding: 12px;
+ overflow-y: auto;
+ display: flex;
+ flex-direction: column;
+ gap: 8px;
+min-height: 0; /* ✅ Add this */
+}
+
     .message {
       max-width: 70%;
       padding: 10px 14px;

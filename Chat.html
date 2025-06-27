@@ -105,7 +105,18 @@
       cursor: pointer;
       margin: 0 10px;
     }
-    /* Modal viewer */
+    #uploadSpinner {
+      width: 20px;
+      height: 20px;
+      border: 3px solid #00C897;
+      border-top: 3px solid transparent;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      display: none;
+    }
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
     #imgModal {
       display: none;
       position: fixed;
@@ -149,10 +160,10 @@
     <input type="text" id="msgInput" placeholder="Type a message..." />
     <input type="file" id="imgInput" accept="image/*" style="display: none;" />
     <img src="Assets/Images/files.png" id="imgBtn" alt="Upload" />
+    <div id="uploadSpinner"></div>
     <button id="sendBtn">Send</button>
   </footer>
 
-  <!-- Modal for image preview -->
   <div id="imgModal">
     <img id="modalImg" src="" />
     <button onclick="closeModal()">Close</button>
@@ -195,6 +206,7 @@
     const imgBtn = document.getElementById("imgBtn");
     const modal = document.getElementById("imgModal");
     const modalImg = document.getElementById("modalImg");
+    const spinner = document.getElementById("uploadSpinner");
 
     let currentUser = null;
     let currentUsername = "";
@@ -208,6 +220,42 @@
         return "[Invalid message]";
       }
     };
+
+    function renderMessage(data) {
+      if (!data || !data.message) return;
+
+      const isMine = data.sendBy === currentUsername;
+      const bubble = document.createElement("div");
+      bubble.className = `message ${isMine ? "sent" : "received"}`;
+      const msgContent = decrypt(data.message);
+
+      if (msgContent.startsWith("[img]")) {
+        const imgUrl = msgContent.slice(5);
+        const img = document.createElement("img");
+        img.src = imgUrl;
+        img.alt = "Image";
+        img.style.maxWidth = "180px";
+        img.style.borderRadius = "12px";
+        img.style.cursor = "pointer";
+        img.onclick = () => openImageViewer(imgUrl);
+        bubble.appendChild(img);
+      } else {
+        bubble.textContent = msgContent;
+      }
+
+      messagesBox.appendChild(bubble);
+      messagesBox.scrollTop = messagesBox.scrollHeight;
+    }
+
+    function openImageViewer(url) {
+      modalImg.src = url;
+      modal.style.display = "flex";
+    }
+
+    function closeModal() {
+      modal.style.display = "none";
+      modalImg.src = "";
+    }
 
     onAuthStateChanged(auth, async user => {
       if (!user) return location.href = "Log.html";
@@ -246,30 +294,7 @@
       }
 
       onChildAdded(nodeRef, snap => {
-        const data = snap.val();
-        if (!data.message) return;
-
-        const isMine = data.sendBy === currentUsername;
-        const bubble = document.createElement("div");
-        bubble.className = `message ${isMine ? "sent" : "received"}`;
-        const msgContent = decrypt(data.message);
-
-        if (msgContent.startsWith("[img]")) {
-          const imgUrl = msgContent.slice(5);
-          const img = document.createElement("img");
-          img.src = imgUrl;
-          img.alt = "Image";
-          img.style.maxWidth = "180px";
-          img.style.borderRadius = "12px";
-          img.style.cursor = "pointer";
-          img.onclick = () => openImageViewer(imgUrl);
-          bubble.appendChild(img);
-        } else {
-          bubble.textContent = msgContent;
-        }
-
-        messagesBox.appendChild(bubble);
-        messagesBox.scrollTop = messagesBox.scrollHeight;
+        renderMessage(snap.val());
       });
     });
 
@@ -293,12 +318,13 @@
       msgInput.value = "";
     };
 
-    // Image upload
     imgBtn.onclick = () => imgInput.click();
 
     imgInput.onchange = async () => {
       const file = imgInput.files[0];
       if (!file) return;
+
+      spinner.style.display = "inline-block";
 
       const formData = new FormData();
       formData.append("image", file);
@@ -319,23 +345,16 @@
           [`read_${currentUsername}`]: true,
           [`read_${otherUsername}`]: false
         };
+
         await set(newMsgRef, payload);
       } catch (err) {
         alert("Image upload failed.");
         console.error(err);
+      } finally {
+        spinner.style.display = "none";
+        imgInput.value = ""; // clear file input
       }
     };
-
-    // Modal open/close
-    function openImageViewer(url) {
-      modalImg.src = url;
-      modal.style.display = "flex";
-    }
-
-    function closeModal() {
-      modal.style.display = "none";
-      modalImg.src = "";
-    }
   </script>
 </body>
 </html>

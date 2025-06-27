@@ -11,13 +11,15 @@
       --text-light: #fff;
     }
     * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body {
+      height: 100%;
+    }
     body {
       font-family: 'Segoe UI', sans-serif;
       background: var(--bg-dark);
       color: var(--text-light);
       display: flex;
       flex-direction: column;
-      height: 100vh;
     }
     header {
       background: var(--accent);
@@ -45,15 +47,14 @@
       color: #111;
     }
     #messages {
-flex: 1;
-padding: 12px;
- overflow-y: auto;
- display: flex;
- flex-direction: column;
- gap: 8px;
-min-height: 0; /* ✅ Add this */
-}
-
+      flex: 1;
+      padding: 12px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      min-height: 0;
+    }
     .message {
       max-width: 70%;
       padding: 10px 14px;
@@ -77,6 +78,7 @@ min-height: 0; /* ✅ Add this */
       padding: 10px;
       background: #1a1a1a;
       border-top: 1px solid #333;
+      align-items: center;
     }
     #msgInput {
       flex: 1;
@@ -97,6 +99,41 @@ min-height: 0; /* ✅ Add this */
       border-radius: 12px;
       cursor: pointer;
     }
+    #imgBtn {
+      width: 32px;
+      height: 32px;
+      cursor: pointer;
+      margin: 0 10px;
+    }
+    /* Modal viewer */
+    #imgModal {
+      display: none;
+      position: fixed;
+      top: 0; left: 0;
+      width: 100vw;
+      height: 100vh;
+      background: rgba(0, 0, 0, 0.9);
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+      flex-direction: column;
+    }
+    #modalImg {
+      max-width: 90vw;
+      max-height: 90vh;
+      border-radius: 8px;
+    }
+    #imgModal button {
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      background: var(--accent);
+      color: #111;
+      border: none;
+      padding: 10px 16px;
+      border-radius: 8px;
+      cursor: pointer;
+    }
   </style>
 </head>
 <body>
@@ -110,8 +147,16 @@ min-height: 0; /* ✅ Add this */
 
   <footer>
     <input type="text" id="msgInput" placeholder="Type a message..." />
+    <input type="file" id="imgInput" accept="image/*" style="display: none;" />
+    <img src="Assets/Images/files.png" id="imgBtn" alt="Upload" />
     <button id="sendBtn">Send</button>
   </footer>
+
+  <!-- Modal for image preview -->
+  <div id="imgModal">
+    <img id="modalImg" src="" />
+    <button onclick="closeModal()">Close</button>
+  </div>
 
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-app.js";
@@ -123,8 +168,7 @@ min-height: 0; /* ✅ Add this */
       onChildAdded,
       set,
       get,
-      update,
-      child
+      update
     } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-database.js";
 
     const fbConfig = {
@@ -147,6 +191,10 @@ min-height: 0; /* ✅ Add this */
     const sendBtn = document.getElementById("sendBtn");
     const chatPic = document.getElementById("chatPic");
     const chatUsernameEl = document.getElementById("chatUsername");
+    const imgInput = document.getElementById("imgInput");
+    const imgBtn = document.getElementById("imgBtn");
+    const modal = document.getElementById("imgModal");
+    const modalImg = document.getElementById("modalImg");
 
     let currentUser = null;
     let currentUsername = "";
@@ -169,7 +217,6 @@ min-height: 0; /* ✅ Add this */
       const userData = userSnap.val();
       currentUsername = userData.username;
 
-      // Validate chatNode
       if (!chatNode || !chatNode.includes("_")) {
         alert("Invalid chat node.");
         return location.href = "Home.html";
@@ -178,7 +225,6 @@ min-height: 0; /* ✅ Add this */
       const parts = chatNode.split("_");
       otherUsername = parts[0] === currentUsername ? parts[1] : parts[0];
 
-      // Fetch the other user's info
       const otherSnap = await get(ref(db, `users-public/${otherUsername}`));
       const otherData = otherSnap.val();
       chatUsernameEl.textContent = otherUsername;
@@ -186,7 +232,6 @@ min-height: 0; /* ✅ Add this */
         chatPic.src = otherData.profilePic;
       }
 
-      // Create node if not exists
       const nodeRef = ref(db, `chats/${chatNode}`);
       const nodeSnap = await get(nodeRef);
       if (!nodeSnap.exists()) {
@@ -200,7 +245,6 @@ min-height: 0; /* ✅ Add this */
         });
       }
 
-      // Listen for new messages
       onChildAdded(nodeRef, snap => {
         const data = snap.val();
         if (!data.message) return;
@@ -208,7 +252,22 @@ min-height: 0; /* ✅ Add this */
         const isMine = data.sendBy === currentUsername;
         const bubble = document.createElement("div");
         bubble.className = `message ${isMine ? "sent" : "received"}`;
-        bubble.textContent = decrypt(data.message);
+        const msgContent = decrypt(data.message);
+
+        if (msgContent.startsWith("[img]")) {
+          const imgUrl = msgContent.slice(5);
+          const img = document.createElement("img");
+          img.src = imgUrl;
+          img.alt = "Image";
+          img.style.maxWidth = "180px";
+          img.style.borderRadius = "12px";
+          img.style.cursor = "pointer";
+          img.onclick = () => openImageViewer(imgUrl);
+          bubble.appendChild(img);
+        } else {
+          bubble.textContent = msgContent;
+        }
+
         messagesBox.appendChild(bubble);
         messagesBox.scrollTop = messagesBox.scrollHeight;
       });
@@ -233,6 +292,50 @@ min-height: 0; /* ✅ Add this */
       await set(newMsgRef, payload);
       msgInput.value = "";
     };
+
+    // Image upload
+    imgBtn.onclick = () => imgInput.click();
+
+    imgInput.onchange = async () => {
+      const file = imgInput.files[0];
+      if (!file) return;
+
+      const formData = new FormData();
+      formData.append("image", file);
+
+      try {
+        const res = await fetch("https://api.imgbb.com/1/upload?key=YOUR_IMGBB_API_KEY", {
+          method: "POST",
+          body: formData
+        });
+        const data = await res.json();
+        const imageUrl = data.data.url;
+
+        const newMsgRef = push(ref(db, `chats/${chatNode}`));
+        const payload = {
+          message: encrypt(`[img]${imageUrl}`),
+          sendBy: currentUsername,
+          time: Date.now(),
+          [`read_${currentUsername}`]: true,
+          [`read_${otherUsername}`]: false
+        };
+        await set(newMsgRef, payload);
+      } catch (err) {
+        alert("Image upload failed.");
+        console.error(err);
+      }
+    };
+
+    // Modal open/close
+    function openImageViewer(url) {
+      modalImg.src = url;
+      modal.style.display = "flex";
+    }
+
+    function closeModal() {
+      modal.style.display = "none";
+      modalImg.src = "";
+    }
   </script>
 </body>
 </html>

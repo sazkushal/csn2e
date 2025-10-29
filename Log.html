@@ -66,9 +66,7 @@
       z-index: 1;
     }
 
-    .tab-buttons button.active {
-      color: var(--accent);
-    }
+    .tab-buttons button.active { color: var(--accent); }
 
     .highlight-bar {
       position: absolute;
@@ -94,10 +92,7 @@
       margin-bottom: 20px;
     }
 
-    input::placeholder {
-      color: var(--accent);
-      opacity: 0.6;
-    }
+    input::placeholder { color: var(--accent); opacity: 0.6; }
 
     .submit-btn {
       background: var(--accent);
@@ -116,7 +111,6 @@
       margin-bottom: 12px;
     }
 
-    /* Modal */
     #profileModal {
       display: none;
       position: fixed;
@@ -166,200 +160,222 @@
       padding-left: 5px;
     }
 
-    .modal-box input:disabled {
-      opacity: 0.6;
-    }.infoH{
-     text-align: center;
-     color: #00C897;
-     border: solid 2px #00C897;
-     border-radius: 12px;
+    .modal-box input:disabled { opacity: 0.6; }
 
+    .infoH {
+      text-align: center;
+      color: #00C897;
+      border: solid 2px #00C897;
+      border-radius: 12px;
+      margin-bottom: 20px;
     }
-    strong{
-        color: rgb(209, 0, 0);
-    }
+
+    strong { color: rgb(209, 0, 0); }
   </style>
 </head>
 <body>
-<div class="infoH"><h3>
-    This is a 'user-user' and 'user-CustomerService' page is Provided By 'Need2Earn' Please Signup and login Here to contact the customer Service Search <strong>CSN2E</strong> in the search bar to chat with customer service after login 
-</h3></div>
-  <h1>Need2Earn Cs
-  </h1>
-  
-  <div class="auth-container">
-    <div class="tab-buttons">
-      <div class="highlight-bar" id="highlightBar"></div>
-      <button id="signInTab" class="active" onclick="showTab('signIn')">Sign In</button>
-      <button id="signUpTab" onclick="showTab('signUp')">Sign Up</button>
-    </div>
+<div class="infoH">
+  <h3>
+    This is a 'user-user' and 'user-CustomerService' page provided by 'Need2Earn'.  
+    Please signup and login here to contact customer service.  
+    Search <strong>CSN2E</strong> in the search bar to chat after login.
+  </h3>
+</div>
 
-    <div id="signInForm" class="form-section active">
-      <input type="email" id="signInEmail" placeholder="Email" />
-      <input type="password" id="signInPassword" placeholder="Password" />
-      <div class="error" id="signInError"></div>
-      <button class="submit-btn" onclick="signIn()">Sign In</button>
-    </div>
+<h1>Need2Earn CS</h1>
 
-    <div id="signUpForm" class="form-section">
-      <input type="email" id="signUpEmail" placeholder="Email" />
-      <input type="password" id="signUpPassword" placeholder="Password" />
-      <div class="error" id="signUpError"></div>
-      <button class="submit-btn" onclick="signUp()">Sign Up</button>
-    </div>
+<div class="auth-container">
+  <div class="tab-buttons">
+    <div class="highlight-bar" id="highlightBar"></div>
+    <button id="signInTab" class="active" onclick="showTab('signIn')">Sign In</button>
+    <button id="signUpTab" onclick="showTab('signUp')">Sign Up</button>
   </div>
 
-  <!-- Profile Completion Modal -->
-  <div id="profileModal">
-    <div class="modal-box">
-      <h2 style="color:var(--accent);">Complete Profile</h2>
-
-      <label style="text-align:left;width:100%;">Username</label>
-      <input id="modalUsername" placeholder="Enter a unique username" />
-      <div id="usernameStatus" class="status-msg"></div>
-
-      <label style="text-align:left;width:100%;">Full Name</label>
-      <input id="modalName" placeholder="First and Last Name" />
-
-      <label style="text-align:left;width:100%;">About (optional)</label>
-      <input id="modalAbout" placeholder="Something about you..." />
-
-      <button id="completeBtn" onclick="submitProfile()">Done</button>
-    </div>
+  <!-- Sign In Form -->
+  <div id="signInForm" class="form-section active">
+    <input type="tel" id="signInMobile" placeholder="Mobile Number" maxlength="15" />
+    <input type="password" id="signInPassword" placeholder="Password" />
+    <div class="error" id="signInError"></div>
+    <button class="submit-btn" onclick="signIn()">Sign In</button>
   </div>
 
-  <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-app.js";
-    import {
-      getAuth,
-      createUserWithEmailAndPassword,
-      signInWithEmailAndPassword,
-      onAuthStateChanged
-    } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-auth.js";
-    import {
-      getDatabase,
-      ref,
-      set,
-      get
-    } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-database.js";
+  <!-- Sign Up Form -->
+  <div id="signUpForm" class="form-section">
+    <input type="tel" id="signUpMobile" placeholder="Mobile Number" maxlength="15" />
+    <input type="password" id="signUpPassword" placeholder="Password" />
+    <div class="error" id="signUpError"></div>
+    <button class="submit-btn" onclick="signUp()">Sign Up</button>
+  </div>
+</div>
 
-    const firebaseConfig = {
-      apiKey: "AIzaSyBfQu55Ljy9FPTVtxDmoqBbq7-OlGTGOLk",
-      authDomain: "chatweb--test.firebaseapp.com",
-      databaseURL: "https://chatweb--test-default-rtdb.firebaseio.com",
-      projectId: "chatweb--test",
-      storageBucket: "chatweb--test.appspot.com",
-      messagingSenderId: "640811624137",
-      appId: "1:640811624137:web:ded815a2813ac0ab5a4f18"
-    };
+<!-- Profile Completion Modal -->
+<div id="profileModal">
+  <div class="modal-box">
+    <h2 style="color:var(--accent);">Complete Profile</h2>
 
-    const app = initializeApp(firebaseConfig);
-    const auth = getAuth();
-    const db = getDatabase();
-    let currentUID = null;
+    <label style="text-align:left;width:100%;">Username</label>
+    <input id="modalUsername" placeholder="Enter a unique username" />
+    <div id="usernameStatus" class="status-msg"></div>
 
-    function showTab(tab) {
-      document.getElementById('signInTab').classList.toggle('active', tab === 'signIn');
-      document.getElementById('signUpTab').classList.toggle('active', tab === 'signUp');
-      document.getElementById('signInForm').classList.toggle('active', tab === 'signIn');
-      document.getElementById('signUpForm').classList.toggle('active', tab === 'signUp');
-      document.getElementById('highlightBar').style.left = tab === 'signIn' ? '0%' : '50%';
-    }
+    <label style="text-align:left;width:100%;">Full Name</label>
+    <input id="modalName" placeholder="First and Last Name" />
 
-    window.showTab = showTab;
+    <label style="text-align:left;width:100%;">About (optional)</label>
+    <input id="modalAbout" placeholder="Something about you..." />
 
-    onAuthStateChanged(auth, (user) => {
-      if (user && localStorage.getItem("profileCompleted") === "true") {
+    <button id="completeBtn" onclick="submitProfile()">Done</button>
+  </div>
+</div>
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-app.js";
+  import {
+    getAuth,
+    createUserWithEmailAndPassword,
+    signInWithEmailAndPassword,
+    onAuthStateChanged
+  } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-auth.js";
+  import {
+    getDatabase,
+    ref,
+    set,
+    get
+  } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-database.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyBfQu55Ljy9FPTVtxDmoqBbq7-OlGTGOLk",
+    authDomain: "chatweb--test.firebaseapp.com",
+    databaseURL: "https://chatweb--test-default-rtdb.firebaseio.com",
+    projectId: "chatweb--test",
+    storageBucket: "chatweb--test.appspot.com",
+    messagingSenderId: "640811624137",
+    appId: "1:640811624137:web:ded815a2813ac0ab5a4f18"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const auth = getAuth();
+  const db = getDatabase();
+  let currentUID = null;
+
+  function showTab(tab) {
+    document.getElementById('signInTab').classList.toggle('active', tab === 'signIn');
+    document.getElementById('signUpTab').classList.toggle('active', tab === 'signUp');
+    document.getElementById('signInForm').classList.toggle('active', tab === 'signIn');
+    document.getElementById('signUpForm').classList.toggle('active', tab === 'signUp');
+    document.getElementById('highlightBar').style.left = tab === 'signIn' ? '0%' : '50%';
+  }
+  window.showTab = showTab;
+
+  onAuthStateChanged(auth, async (user) => {
+    if (user) {
+      currentUID = user.uid;
+      const snap = await get(ref(db, `users/${user.uid}`));
+      if (snap.exists()) {
+        localStorage.setItem("profileCompleted", "true");
         window.location.href = "index.html";
-      }
-    });
-
-    async function signUp() {
-      const email = document.getElementById('signUpEmail').value;
-      const pass = document.getElementById('signUpPassword').value;
-      const err = document.getElementById('signUpError');
-      err.textContent = '';
-      try {
-        const res = await createUserWithEmailAndPassword(auth, email, pass);
-        currentUID = res.user.uid;
+      } else {
+        localStorage.removeItem("profileCompleted");
         document.getElementById("profileModal").style.display = "flex";
-      } catch (e) {
-        err.textContent = e.message;
       }
     }
+  });
 
-    async function signIn() {
-      const email = document.getElementById('signInEmail').value;
-      const pass = document.getElementById('signInPassword').value;
-      const err = document.getElementById('signInError');
-      err.textContent = '';
+  async function signUp() {
+    const mobile = document.getElementById('signUpMobile').value.trim();
+    const pass = document.getElementById('signUpPassword').value;
+    const err = document.getElementById('signUpError');
+    err.textContent = '';
+
+    if (!mobile.match(/^\d{8,15}$/)) {
+      err.textContent = "Enter a valid mobile number (8–15 digits)";
+      return;
+    }
+
+    const email = `${mobile}@n2e.com`; // use mobile as email-like ID
+
+    try {
+      await createUserWithEmailAndPassword(auth, email, pass);
+    } catch (e) {
+      err.textContent = e.message;
+    }
+  }
+
+  async function signIn() {
+    const mobile = document.getElementById('signInMobile').value.trim();
+    const pass = document.getElementById('signInPassword').value;
+    const err = document.getElementById('signInError');
+    err.textContent = '';
+
+    if (!mobile.match(/^\d{8,15}$/)) {
+      err.textContent = "Enter a valid mobile number (8–15 digits)";
+      return;
+    }
+
+    const email = `${mobile}@n2e.com`;
+
+    try {
+      await signInWithEmailAndPassword(auth, email, pass);
+    } catch (e) {
+      err.textContent = e.message;
+    }
+  }
+
+  window.signUp = signUp;
+  window.signIn = signIn;
+
+  const usernameInput = document.getElementById("modalUsername");
+  const usernameStatus = document.getElementById("usernameStatus");
+  const completeBtn = document.getElementById("completeBtn");
+  let debounce;
+
+  usernameInput.addEventListener("input", () => {
+    usernameStatus.textContent = '';
+    completeBtn.disabled = true;
+    clearTimeout(debounce);
+    const val = usernameInput.value.trim().toLowerCase();
+
+    if (!val || val.length < 3 || /[^a-z0-9._]/i.test(val)) {
+      usernameStatus.textContent = 'Username must be at least 3 characters and alphanumeric';
+      usernameStatus.style.color = '#ff4d4d';
+      return;
+    }
+
+    debounce = setTimeout(async () => {
       try {
-        await signInWithEmailAndPassword(auth, email, pass);
-        window.location.href = "index.html";
-      } catch (e) {
-        err.textContent = e.message;
-      }
-    }
-
-    window.signUp = signUp;
-    window.signIn = signIn;
-
-    const usernameInput = document.getElementById("modalUsername");
-    const usernameStatus = document.getElementById("usernameStatus");
-    const completeBtn = document.getElementById("completeBtn");
-    let debounce;
-
-    usernameInput.addEventListener("input", () => {
-      usernameStatus.textContent = '';
-      completeBtn.disabled = true;
-      clearTimeout(debounce);
-      const val = usernameInput.value.trim().toLowerCase();
-
-      if (!val || val.length < 3 || /[^a-z0-9._]/i.test(val)) {
-        usernameStatus.textContent = 'Username must be at least 3 characters and alphanumeric';
-        usernameStatus.style.color = '#ff4d4d';
-        return;
-      }
-
-      debounce = setTimeout(async () => {
-        try {
-          const snap = await get(ref(db, `users-public/${val}`));
-          if (snap.exists()) {
-            usernameStatus.textContent = 'Username already taken';
-            usernameStatus.style.color = '#ff4d4d';
-            completeBtn.disabled = true;
-          } else {
-            usernameStatus.textContent = 'Username available';
-            usernameStatus.style.color = '#00f5c4';
-            completeBtn.disabled = false;
-          }
-        } catch (e) {
-          usernameStatus.textContent = 'Error checking username';
+        const snap = await get(ref(db, `users-public/${val}`));
+        if (snap.exists()) {
+          usernameStatus.textContent = 'Username already taken';
           usernameStatus.style.color = '#ff4d4d';
+          completeBtn.disabled = true;
+        } else {
+          usernameStatus.textContent = 'Username available';
+          usernameStatus.style.color = '#00f5c4';
+          completeBtn.disabled = false;
         }
-      }, 500);
-    });
-
-    async function submitProfile() {
-      const username = usernameInput.value.trim().toLowerCase();
-      const name = document.getElementById("modalName").value.trim();
-      const about = document.getElementById("modalAbout").value.trim();
-
-      if (!username || !name) {
-        return alert("Username & Name required");
+      } catch (e) {
+        usernameStatus.textContent = 'Error checking username';
+        usernameStatus.style.color = '#ff4d4d';
       }
+    }, 500);
+  });
 
-      if (usernameStatus.textContent === 'Username already taken') {
-        return alert("Choose another username");
-      }
+  async function submitProfile() {
+    const username = usernameInput.value.trim().toLowerCase();
+    const name = document.getElementById("modalName").value.trim();
+    const about = document.getElementById("modalAbout").value.trim();
 
-      await set(ref(db, `users/${currentUID}`), { username, name, about });
-      await set(ref(db, `users-public/${username}`), { name });
-      localStorage.setItem("profileCompleted", "true");
-      window.location.href = "index.html";
-    }
+    if (!username || !name) return alert("Username & Name required");
 
-    window.submitProfile = submitProfile;
-  </script>
+    if (usernameStatus.textContent === 'Username already taken')
+      return alert("Choose another username");
+
+    await set(ref(db, `users/${currentUID}`), { username, name, about });
+    await set(ref(db, `users-public/${username}`), { name });
+    localStorage.setItem("profileCompleted", "true");
+    window.location.href = "index.html";
+  }
+
+  window.submitProfile = submitProfile;
+</script>
 </body>
 </html>

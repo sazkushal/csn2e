@@ -270,7 +270,7 @@
 
     onAuthStateChanged(auth, (user) => {
       if (user && localStorage.getItem("profileCompleted") === "true") {
-        window.location.href = "Home.html";
+        window.location.href = "index.html";
       }
     });
 
@@ -295,7 +295,7 @@
       err.textContent = '';
       try {
         await signInWithEmailAndPassword(auth, email, pass);
-        window.location.href = "Home.html";
+        window.location.href = "index.html";
       } catch (e) {
         err.textContent = e.message;
       }
@@ -356,7 +356,7 @@
       await set(ref(db, `users/${currentUID}`), { username, name, about });
       await set(ref(db, `users-public/${username}`), { name });
       localStorage.setItem("profileCompleted", "true");
-      window.location.href = "Home.html";
+      window.location.href = "index.html";
     }
 
     window.submitProfile = submitProfile;
